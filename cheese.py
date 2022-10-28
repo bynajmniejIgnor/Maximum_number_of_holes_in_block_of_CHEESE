@@ -99,19 +99,32 @@ class Cheese:
 				print()
 				l=0
 
+class Hole_Maker:	
+	def condition_1(self,particle):
+		all_good=True
+		if len(particle.connections)<3:
+			print("Condition_1 failed for particle",particle)
+			all_good=False
+		print("Condition_1 all_good =",all_good)
+	
+	def condition_2(self,cheese):
+		for particle in cheese.particles:
+			if len(particle.connections)
 #bpy.context.space_data.shading.type = 'MATERIAL'
 #bpy.data.materials["Material.001"].node_tree.nodes["Principled BSDF"].inputs[0].default_value = (0.8, 0.588643, 0.16654, 1)
 #bpy.ops.object.select_all(action='SELECT')
 #bpy.ops.object.make_links_data(type='MATERIAL')
 
 if __name__=="__main__":
-	width=7#int(input('Windexth of cheese: '))
-	length=5#int(input('Length of cheese: '))
-	height=6#int(input('Height of cheese: '))
+	width=3#int(input('Windexth of cheese: '))
+	length=4#int(input('Length of cheese: '))
+	height=3#int(input('Height of cheese: '))
 	particles=[]
 	for i in range(width*length*height):
 		particles.append(CheeseParticle(i,0,[],[]))
 	
 	cheese=Cheese(particles,width,length,height)
 	cheese.fromager()
-	cheese.generate_cheese_blender_script("blender_full_cheese.py",0.7)
+	test=Hole_Maker()
+	test.condition_1(cheese)
+	#cheese.generate_cheese_blender_script("blender_full_cheese.py",0.7)
