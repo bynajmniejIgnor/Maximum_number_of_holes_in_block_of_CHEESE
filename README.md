@@ -9,7 +9,7 @@ Przyjmując uproszczony model sera, składający się z połączonych z sobą ku
 Struktura sera zniesie ubytek kul, pod warunkiem, że każda z pozostałych kul będzie spełniać co najmniej jeden z poniższych warunków:
   * Kula jest połączona z co najmniej trzema innymi
   * Kula jest połączona z jedną inną kulą, pod warunkiem, że tamta jest połączona z co najmniej czterema innymi
-  * Kula jest połączona z dwiema innymi kulami, pod warunkiem, że każda z tych jest połączona z co najmniej trzema innymi.
+  * Kula jest połączona z dwiema innymi kulami, pod warunkiem, że każda z tych jest połączona z co najmniej czterema innymi.
 
 Projekt zakłada: 
   * Generację grafu reprezentującego blok (prostopadłościan) sera
