@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-import itertools 
 from os import system
 
 class CheeseParticle:
@@ -8,7 +7,6 @@ class CheeseParticle:
 		self.visited=visited
 		self.connections=connections
 		self.location=location
-		#print("Made cheese ball of index",index)
 	
 	def __str__(self):
 		return f"id:{self.index} connections:{self.connections} location:{self.location}"
@@ -101,6 +99,33 @@ class Cheese:
 				l=0
 
 class Holemaker:	
+	def __init__(self):
+		self.left_wall=[]
+		self.right_wall=[]
+		self.front_wall=[]
+		self.back_wall=[]
+		self.floor=[]
+		self.ceiling=[]
+
+	def generate_must_haves(self,cheese):
+		c=0
+		for h in range(cheese.height):
+			for l in range(cheese.length):
+				self.left_wall.append(c)
+				self.right_wall.append(c+width-1)
+				c+=cheese.width
+			for w in range(cheese.width):
+				self.back_wall.append(w+h*cheese.width*cheese.length)
+				self.front_wall.append(w+cheese.width*(cheese.length*(h+1)-1))
+		for i in range(cheese.length*cheese.width):
+			self.floor.append(i)
+			self.ceiling.append(i+cheese.length*cheese.width*(cheese.height-1))
+		print("Left wall:",self.left_wall)
+		print("Right wall:",self.right_wall)
+		print("Back wall:",self.back_wall)
+		print("Front wall:",self.front_wall)
+		print("Floor:",self.floor)
+		print("Ceiling:",self.ceiling)
 	def condition_1(self,particle):
 		all_good=True
 		if len(particle.connections)<3:
@@ -147,18 +172,6 @@ class Holemaker:
 					print("Redemption at condition_2! Particles neighbour has at least 5 different connections:",cheese.particles[particle.connections[0]])
 		return all_good
 
-	def make_holes(self,cheese):
-		number_of_particles=cheese.width*cheese.length*cheese.height
-		combination='0'*number_of_particles
-		holes=0
-		max_holes=0
-		for i in range(100):
-			combination=bin(int(combination,2)+int('1',2))
-			print(combination)
-			
-			
-		
-
 #bpy.context.space_data.shading.type = 'MATERIAL'
 #bpy.data.materials["Material.001"].node_tree.nodes["Principled BSDF"].inputs[0].default_value = (0.8, 0.588643, 0.16654, 1)
 #bpy.ops.object.select_all(action='SELECT')
@@ -174,9 +187,6 @@ if __name__=="__main__":
 	
 	cheese=Cheese(particles,width,length,height)
 	cheese.fromager()
-	cheese.particles[4].connections=[1]
-	cheese.particles[1].connections=[4,5,6,7,8,0]
+	cheese.dump_cheese()
 	test=Holemaker()
-	print("Cheese structure is all good:",test.check_structure(cheese))
-	test.make_holes(cheese)
-	#cheese.generate_cheese_blender_script("blender_full_cheese.py",0.7)
+	test.generate_must_haves(cheese)
