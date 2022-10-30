@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-from os import system
+import os
+import copy
 
 class CheeseParticle:
 	def __init__(self,index,visited,connections,location):
@@ -75,11 +76,10 @@ class Cheese:
 		file.write("import bpy\n")
 		file.write("bpy.ops.object.select_all(action='SELECT')\n")
 		file.write("bpy.ops.object.delete(use_global=False, confirm=False)\n")
-		for h in range(height):
-			for i in range(length): 
-				for j in range(width):
-					particles[i+j+h].location=[i,j,h]
-					file.write(f"bpy.ops.mesh.primitive_uv_sphere_add(enter_editmode=False, align='WORLD', location=({particles[i+j+h].location[0]},{particles[i+j+h].location[1]},{particles[i+j+h].location[2]}), scale=({scale},{scale},{scale}))\n")
+		for particle in particles:
+			if particle.index==-1:
+				continue
+			file.write(f"bpy.ops.mesh.primitive_uv_sphere_add(enter_editmode=False, align='WORLD', location=({particle.location[0]},{particle.location[1]},{particle.location[2]}), scale=({scale},{scale},{scale}))\n")
 		print("DONE!\n")
 		file.close()
 		self.launch_blender(file_name)
@@ -106,7 +106,7 @@ class Holemaker:
 		self.back_wall=[]
 		self.floor=[]
 		self.ceiling=[]
-
+		self.empty=CheeseParticle(-1,0,[],[])
 	def generate_must_haves(self,cheese):
 		c=0
 		for h in range(cheese.height):
@@ -126,10 +126,11 @@ class Holemaker:
 		print("Front wall:",self.front_wall)
 		print("Floor:",self.floor)
 		print("Ceiling:",self.ceiling)
+
 	def condition_1(self,particle):
 		all_good=True
 		if len(particle.connections)<3:
-			print("Condition_1 failed for particle",particle,"particle has less than 3 connections!")
+			#print("Condition_1 failed for particle",particle,"particle has less than 3 connections!")
 			all_good=False
 		return all_good
 
@@ -139,10 +140,10 @@ class Holemaker:
 			hook=particle.connections[0]
 			if len(cheese.particles[hook].connections)-1<5:
 				all_good=False
-				print("Condition_2 failed for particle",particle,"particle",cheese.particles[particle.connections[0]],"has less than 5 connections!")
+				#print("Condition_2 failed for particle",particle,"particle",cheese.particles[particle.connections[0]],"has less than 5 connections!")
 			return all_good
 		else:
-			print("Condition_2 failed for particle",particle,"the number of connections is not equal to 1")
+			#print("Condition_2 failed for particle",particle,"the number of connections is not equal to 1")
 			return False
 
 	def condition_3(self,particle,cheese):
@@ -152,25 +153,64 @@ class Holemaker:
 			hook_2=particle.connections[1]
 			if len(cheese.particles[hook_1].connections)-1<4 or len(cheese.particles[hook_2].connections)-1<4:
 				all_good=False
-				print("Condition_3 failed for particle",particle,"particle neighbours have less than 4 connections each:",cheese.particles[particle.connections[0]],cheese.particles[particle.connections[1]])
+				#print("Condition_3 failed for particle",particle,"particle neighbours have less than 4 connections each:",cheese.particles[particle.connections[0]],cheese.particles[particle.connections[1]])
 			return all_good
 		else:
-			print("Condition_3 failed for particle",particle,"the number of connections is not equal to 2")
+			#print("Condition_3 failed for particle",particle,"the number of connections is not equal to 2")
 			return False
 
 	def check_structure(self,cheese):
-		all_good=True
-		print("Checking structure...")
+		all_good=False
 		for particle in cheese.particles:
+			if not particle.index==-1:
+				all_good=True
+				break
+		for particle in cheese.particles:
+			if particle.index==-1:
+				continue
 			if not self.condition_1(particle): 
 				if not self.condition_2(particle,cheese):
 					if not self.condition_3(particle, cheese):
 						all_good=False
+						break
 					else:
 						print("Redemption at condition_3! Particles neighbours have at least 4 other connections each:\n",cheese.particles[particle.connections[0]],"\n",cheese.particles[particle.connections[1]])
 				else:
 					print("Redemption at condition_2! Particles neighbour has at least 5 different connections:",cheese.particles[particle.connections[0]])
-		return all_good
+		return all_good	
+
+	def make_hole(self,index,cheese):
+		for i in cheese.particles[index].connections:
+			cheese.particles[i].connections.remove(index)
+		cheese.particles[index]=self.empty
+			
+	def bruteforce_holes(self,cheese):
+		print("Bruteforcing holes...")
+		number_of_particles=cheese.height*cheese.length*cheese.width
+		perm='0'
+		goal='1'*number_of_particles
+		holes=0
+		max_holes=0
+		wip_cheese=copy.deepcopy(cheese)
+		holesome_cheese=copy.deepcopy(cheese)
+		c=0
+		while not perm==goal:
+			perm=bin(c).replace('0b','').zfill(number_of_particles)
+			print("Trying:",perm)
+			for i in range(len(perm)):
+				if perm[i]=='0':
+					self.make_hole(i,wip_cheese)
+			if self.check_structure(wip_cheese):
+				print("Solution found")
+				holes=perm.count('0')
+				if holes>max_holes:
+					print(holes)
+					max_holes=holes
+					holesome_cheese=copy.deepcopy(wip_cheese)
+				break
+			wip_cheese=copy.deepcopy(cheese)
+			c+=1
+		holesome_cheese.generate_cheese_blender_script('blender_cheese_o_holes.py',0.7)
 
 #bpy.context.space_data.shading.type = 'MATERIAL'
 #bpy.data.materials["Material.001"].node_tree.nodes["Principled BSDF"].inputs[0].default_value = (0.8, 0.588643, 0.16654, 1)
@@ -179,14 +219,25 @@ class Holemaker:
 
 if __name__=="__main__":
 	width=3#int(input('Windexth of cheese: '))
-	length=4#int(input('Length of cheese: '))
-	height=3#int(input('Height of cheese: '))
+	length=3#int(input('Length of cheese: '))
+	height=2#int(input('Height of cheese: '))
 	particles=[]
+	w=0
+	l=0
+	h=0
 	for i in range(width*length*height):
-		particles.append(CheeseParticle(i,0,[],[]))
+		particles.append(CheeseParticle(i,0,[],[w,l,h]))
+		w+=1
+		if w==width:
+			l+=1
+			w=0
+		if l==length:
+			h+=1
+			l=0
 	
 	cheese=Cheese(particles,width,length,height)
 	cheese.fromager()
-	cheese.dump_cheese()
+	#cheese.dump_cheese()
 	test=Holemaker()
-	test.generate_must_haves(cheese)
+	cheese.dump_cheese()
+	test.bruteforce_holes(cheese)
