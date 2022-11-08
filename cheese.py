@@ -76,7 +76,7 @@ class Cheese:
 		file.write("import bpy\n")
 		file.write("bpy.ops.object.select_all(action='SELECT')\n")
 		file.write("bpy.ops.object.delete(use_global=False, confirm=False)\n")
-		for particle in particles:
+		for particle in self.particles:
 			if particle.index==-1:
 				continue
 			file.write(f"bpy.ops.mesh.primitive_uv_sphere_add(enter_editmode=False, align='WORLD', location=({particle.location[0]},{particle.location[1]},{particle.location[2]}), scale=({scale},{scale},{scale}))\n")
@@ -107,7 +107,8 @@ class Holemaker:
 		self.floor=[]
 		self.ceiling=[]
 		self.empty=CheeseParticle(-1,0,[],[])
-	def generate_must_haves(self,cheese):
+
+	def generate_must_haves(self,cheese,verbose):
 		c=0
 		for h in range(cheese.height):
 			for l in range(cheese.length):
@@ -120,12 +121,51 @@ class Holemaker:
 		for i in range(cheese.length*cheese.width):
 			self.floor.append(i)
 			self.ceiling.append(i+cheese.length*cheese.width*(cheese.height-1))
-		print("Left wall:",self.left_wall)
-		print("Right wall:",self.right_wall)
-		print("Back wall:",self.back_wall)
-		print("Front wall:",self.front_wall)
-		print("Floor:",self.floor)
-		print("Ceiling:",self.ceiling)
+		if verbose==1:
+			print("Left wall:",self.left_wall)
+			print("Right wall:",self.right_wall)
+			print("Back wall:",self.back_wall)
+			print("Front wall:",self.front_wall)
+			print("Floor:",self.floor)
+			print("Ceiling:",self.ceiling)
+	
+	def check_must_haves(self,cheese):
+		ok_table=[0]*6
+		for particle in cheese.particles:
+			for must in self.left_wall:
+				if must==particle.index:
+					#print("Must particle found in left wall",must)
+					ok_table[0]=1
+					break
+			for must in self.right_wall:
+				if must==particle.index:
+					#print("Must particle found in right wall",must)
+					ok_table[1]=1
+					break
+			for must in self.back_wall:
+				if must==particle.index:
+					#print("Must particle found in back wall",must)
+					ok_table[2]=1
+					break
+			for must in self.front_wall:
+				if must==particle.index:
+					#print("Must particle found in front wall",must)
+					ok_table[3]=1
+					break
+			for must in self.ceiling:
+				if must==particle.index:
+					#print("Must particle found in ceiling",must)
+					ok_table[4]=1
+					break
+			for must in self.floor:
+				if must==particle.index:
+					#print("Must particle found in floor",must)
+					ok_table[5]=1
+					break
+			if not 0 in ok_table:
+				print("Solution is correct!")
+				return True
+		return False
 
 	def condition_1(self,particle):
 		all_good=True
@@ -183,9 +223,10 @@ class Holemaker:
 		for i in cheese.particles[index].connections:
 			cheese.particles[i].connections.remove(index)
 		cheese.particles[index]=self.empty
-			
+
 	def bruteforce_holes(self,cheese):
 		print("Bruteforcing holes...")
+		self.generate_must_haves(cheese,0)
 		number_of_particles=cheese.height*cheese.length*cheese.width
 		perm='0'
 		goal='1'*number_of_particles
@@ -196,18 +237,18 @@ class Holemaker:
 		c=0
 		while not perm==goal:
 			perm=bin(c).replace('0b','').zfill(number_of_particles)
-			print("Trying:",perm)
+			print("Trying:",perm,end="\r")
 			for i in range(len(perm)):
 				if perm[i]=='0':
 					self.make_hole(i,wip_cheese)
 			if self.check_structure(wip_cheese):
-				print("Solution found")
-				holes=perm.count('0')
-				if holes>max_holes:
-					print(holes)
-					max_holes=holes
-					holesome_cheese=copy.deepcopy(wip_cheese)
-				break
+				if self.check_must_haves(wip_cheese):
+					print("Solution found")
+					holes=perm.count('0')
+					if holes>max_holes:
+						print(holes)
+						max_holes=holes
+						holesome_cheese=copy.deepcopy(wip_cheese)
 			wip_cheese=copy.deepcopy(cheese)
 			c+=1
 		holesome_cheese.generate_cheese_blender_script('blender_cheese_o_holes.py',0.7)
@@ -240,4 +281,5 @@ if __name__=="__main__":
 	#cheese.dump_cheese()
 	test=Holemaker()
 	cheese.dump_cheese()
+	test.generate_must_haves(cheese,0)
 	test.bruteforce_holes(cheese)
