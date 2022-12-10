@@ -113,7 +113,7 @@ class Holemaker:
     def generate_must_haves(self,cheese,verbose):
         c=0
         for h in range(cheese.height):
-            for l in range(cheese.length):
+            for _ in range(cheese.length):
                 self.left_wall.append(c)
                 self.right_wall.append(c+width-1)
                 c+=cheese.width
@@ -276,17 +276,17 @@ class Holemaker:
             print(f"Most holes found {max_holes} | Trying:",perm,end="\r")
             for i in range(len(perm)):
                 if perm[i]=='0':
-                    self.make_hole(i,wip_cheese)
-            if self.check_structure(wip_cheese,c1,c2,c3):
-                if self.check_must_haves(wip_cheese):
-                    if self.solid_or_not(wip_cheese):
+                    self.make_hole(i,wip_cheese) #Stwórz we wskazanym miejscu dziurę
+            if self.check_structure(wip_cheese,c1,c2,c3): #Sprawdzenie wszystkich warunków dotyczących liczby połączeń
+                if self.check_must_haves(wip_cheese): #Sprawdzenie warunku kul ściennych
+                    if self.solid_or_not(wip_cheese): #Sprawdzenie czy wygenerowany ser jest spójny (dfs)
                         holes=perm.count('0')
                         if holes>max_holes:
                             max_holes=holes
                             holesome_cheese=copy.deepcopy(wip_cheese)
             wip_cheese=copy.deepcopy(cheese)
             c+=1
-        holesome_cheese.generate_cheese_blender_script('blender_cheese_o_holes.py',0.7)
+        holesome_cheese.generate_cheese_blender_script('blender_cheese_o_holes.py',0.7) #Wygeneruj skrypt z wizualizacją otrzymanego sera
 
     def build_solution(self,cheese):
         solution=[]
@@ -296,7 +296,7 @@ class Holemaker:
         return solution
 
 
-    def grow_hole(self,cheese,start,c1,c2,c3):
+    def grow_hole(self,cheese,start,c1,c2,c3): #backtracking
         neighbours=cheese.particles[start]
         can_eat=1
         for i in neighbours.connections:
@@ -310,11 +310,17 @@ class Holemaker:
             if cheese.particles[i].not_removable==0:
                 self.grow_hole(cheese,i,c1,c2,c3)
             
-                
-#bpy.context.space_data.shading.type = 'MATERIAL'
-#bpy.data.materials["Material.001"].node_tree.nodes["Principled BSDF"].inputs[0].default_value = (0.8, 0.588643, 0.16654, 1)
-#bpy.ops.object.select_all(action='SELECT')
-#bpy.ops.object.make_links_data(type='MATERIAL')
+    def one_by_one(self,cheese,c1,c2,c3): #heuristic
+        for particle in cheese.particles:
+            can_eat=1
+            for i in particle.connections:
+                if not self.is_particle_good(cheese,cheese.particles[i],c1,c2,c3,0,1):
+                    particle.not_removable=1
+                    can_eat=0
+                    break
+            if can_eat:
+                self.make_hole(particle.index,cheese)
+
 
 if __name__=="__main__":
     width=10     #int(input('Windexth of cheese: '))
@@ -341,7 +347,8 @@ if __name__=="__main__":
     #cheese.dump_cheese()
     #test.generate_must_haves(cheese,0)
     #test.bruteforce_holes(cheese,3,4,3) #cheese, bound for cond_1, 2, 3
-    #test.grow_hole(cheese,1,3,4,3)
+    #test.grow_hole(cheese,0,3,4,3)
+    test.one_by_one(cheese,3,4,3)
     f=0
     for particle in cheese.particles:
         if particle.index==-1:
@@ -351,5 +358,5 @@ if __name__=="__main__":
         print("Solution is not in one piece")
     else:
         print("Solution is in one piece")
-    #cheese.generate_cheese_blender_script("growin_hole.py",0.7)
+    cheese.generate_cheese_blender_script("one_by_one.py",0.7)
     #cheese.dump_cheese()
