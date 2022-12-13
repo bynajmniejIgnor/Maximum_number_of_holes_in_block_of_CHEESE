@@ -2,6 +2,7 @@
 import os
 import copy
 import random
+import time
 
 class CheeseParticle:
     def __init__(self,index,visited,connections,location):
@@ -271,6 +272,7 @@ class Holemaker:
         wip_cheese=copy.deepcopy(cheese)
         holesome_cheese=copy.deepcopy(cheese)
         c=0
+        start=time.time()
         while not perm==goal:
             perm=bin(c).replace('0b','').zfill(number_of_particles)
             print(f"Most holes found {max_holes} | Trying:",perm,end="\r")
@@ -286,7 +288,10 @@ class Holemaker:
                             holesome_cheese=copy.deepcopy(wip_cheese)
             wip_cheese=copy.deepcopy(cheese)
             c+=1
-        holesome_cheese.generate_cheese_blender_script('blender_cheese_o_holes.py',0.7) #Wygeneruj skrypt z wizualizacją otrzymanego sera
+        end=time.time()
+        print("Maximal number of holes is:",max_holes)
+        print("This took:",end-start)
+        holesome_cheese.generate_cheese_blender_script('optimal.py',0.7) #Wygeneruj skrypt z wizualizacją otrzymanego sera
 
     def build_solution(self,cheese):
         solution=[]
@@ -320,12 +325,41 @@ class Holemaker:
                     break
             if can_eat:
                 self.make_hole(particle.index,cheese)
-
+    
+    def one_by_all(self,cheese,c1,c2,c3):
+        number_of_particles=cheese.width*cheese.length*cheese.height
+        queue=list(range(number_of_particles))
+        wip_cheese=copy.deepcopy(cheese)
+        holesome_cheese=copy.deepcopy(cheese)
+        holes=0
+        max_holes=0
+        start=time.time()
+        for a in range(number_of_particles):
+            print("Going through",a,", max holes found",max_holes,end='\r')
+            queue.append(queue.pop(0))
+            for i in queue:
+                can_eat=1
+                for neighbour in wip_cheese.particles[i].connections:
+                    if not self.is_particle_good(wip_cheese,wip_cheese.particles[neighbour],c1,c2,c3,0,1):
+                        wip_cheese.particles[i].not_removable=1
+                        can_eat=0
+                        break
+                if can_eat:
+                    holes+=1
+                    self.make_hole(i,wip_cheese)
+            if holes>max_holes:
+                max_holes=holes
+                holesome_cheese=copy.deepcopy(wip_cheese)
+            holes=0
+            wip_cheese=copy.deepcopy(cheese)
+        end=time.time()
+        print("This took:",end-start,"s")
+        holesome_cheese.generate_cheese_blender_script("small_one_by_all.py",0.7)
 
 if __name__=="__main__":
-    width=10     #int(input('Windexth of cheese: '))
-    length=10    #int(input('Length of cheese: '))
-    height=10   #int(input('Height of cheese: '))
+    width=3     #int(input('Windexth of cheese: '))
+    length=3    #int(input('Length of cheese: '))
+    height=2    #int(input('Height of cheese: '))
     particles=[]
     w=0
     l=0
@@ -346,17 +380,8 @@ if __name__=="__main__":
     test=Holemaker()
     #cheese.dump_cheese()
     #test.generate_must_haves(cheese,0)
-    #test.bruteforce_holes(cheese,3,4,3) #cheese, bound for cond_1, 2, 3
-    #test.grow_hole(cheese,0,3,4,3)
-    test.one_by_one(cheese,3,4,3)
-    f=0
-    for particle in cheese.particles:
-        if particle.index==-1:
-            f+=1
-    print("Heurstic made",f,"holes")
-    if not test.solid_or_not(cheese):
-        print("Solution is not in one piece")
-    else:
-        print("Solution is in one piece")
-    cheese.generate_cheese_blender_script("one_by_one.py",0.7)
+    #test.bruteforce_holes(cheese,3,5,2) #cheese, bound for cond_1, 2, 3
+    #test.grow_hole(cheese,0,3,5,2)
+    test.one_by_all(cheese,3,4,2)
+    #cheese.generate_cheese_blender_script("big_cgungus_growing_hole.py",0.7)
     #cheese.dump_cheese()
